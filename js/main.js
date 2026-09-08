@@ -1,12 +1,19 @@
 // ===== 极简 hash 路由 =====
 const app = document.getElementById("app");
 
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
 function render() {
   const hash = location.hash.slice(1) || "/";
   const [path, query] = hash.split("?");
   const keyword = query ? new URLSearchParams(query).get("q") || "" : "";
 
   updateNav(path);
+  searchInput.value = keyword;
 
   if (path === "/about") {
     renderAbout();
@@ -25,12 +32,13 @@ function updateNav(path) {
 
 // ===== 首页：文章列表 =====
 function renderHome(keyword) {
+  const kw = keyword.toLowerCase();
   const posts = POSTS.filter(
     (p) =>
-      !keyword ||
-      p.title.includes(keyword) ||
-      p.excerpt.includes(keyword) ||
-      p.tags.some((t) => t.includes(keyword))
+      !kw ||
+      p.title.toLowerCase().includes(kw) ||
+      p.excerpt.toLowerCase().includes(kw) ||
+      p.tags.some((t) => t.toLowerCase().includes(kw))
   );
 
   app.innerHTML = `
@@ -43,13 +51,13 @@ function renderHome(keyword) {
 
 function postCard(post) {
   return `
-    <article class="post-card" onclick="location.hash='#/post/${post.id}'">
-      <h2>${post.title}</h2>
+    <article class="post-card" data-id="${escapeHtml(post.id)}">
+      <h2><a href="#/post/${escapeHtml(post.id)}">${escapeHtml(post.title)}</a></h2>
       <div class="post-meta">
-        <span>${post.date}</span>
-        <span>${post.tags.map((t) => `<span class="tag">${t}</span>`).join(" ")}</span>
+        <span>${escapeHtml(post.date)}</span>
+        <span>${post.tags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join(" ")}</span>
       </div>
-      <p class="post-excerpt">${post.excerpt}</p>
+      <p class="post-excerpt">${escapeHtml(post.excerpt)}</p>
       <span class="read-more">阅读全文 →</span>
     </article>
   `;
@@ -65,10 +73,10 @@ function renderPostDetail(id) {
   app.innerHTML = `
     <article class="post-detail">
       <a class="back-link" href="#/">← 返回列表</a>
-      <h1>${post.title}</h1>
+      <h1>${escapeHtml(post.title)}</h1>
       <div class="post-meta">
-        <span>${post.date}</span>
-        <span>${post.tags.map((t) => `<span class="tag">${t}</span>`).join(" ")}</span>
+        <span>${escapeHtml(post.date)}</span>
+        <span>${post.tags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join(" ")}</span>
       </div>
       <div class="post-content">${post.content}</div>
     </article>
@@ -91,11 +99,17 @@ function renderAbout() {
 const searchInput = document.getElementById("searchInput");
 searchInput.addEventListener("input", debounce(() => {
   const q = searchInput.value.trim();
-  const [path] = (location.hash.slice(1) || "/").split("?");
-  if (path === "/") {
-    location.hash = q ? `#/?q=${encodeURIComponent(q)}` : "#/";
-  }
+  location.hash = q ? `#/?q=${encodeURIComponent(q)}` : "#/";
 }, 300));
+
+// 卡片点击事件委托：点击卡片任意位置（链接本身除外）跳转详情页
+app.addEventListener("click", (e) => {
+  if (e.target.closest("a")) return;
+  const card = e.target.closest(".post-card");
+  if (card && card.dataset.id) {
+    location.hash = "#/post/" + card.dataset.id;
+  }
+});
 
 function debounce(fn, delay) {
   let timer;
@@ -124,7 +138,4 @@ themeToggle.addEventListener("click", () => {
 
 // ===== 启动 =====
 window.addEventListener("hashchange", render);
-window.addEventListener("DOMContentLoaded", () => {
-  // 从文章页刷新时恢复搜索框状态
-  render();
-});
+render();

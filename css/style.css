@@ -160,7 +160,11 @@ a {
   color: var(--text);
 }
 
-.post-card h2:hover {
+.post-card h2 a {
+  color: inherit;
+}
+
+.post-card h2 a:hover {
   color: var(--primary);
 }
 

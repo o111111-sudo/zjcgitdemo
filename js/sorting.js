@@ -1,4 +1,4 @@
-// 三种排序算法实现（无框架依赖，node 或浏览器均可运行）
+// 三种排序算法实现（无框架依赖；通过 module.exports 供 Node 使用）
 
 // 冒泡排序：相邻元素两两比较，大的往后冒
 function bubbleSort(arr) {
@@ -17,10 +17,10 @@ function bubbleSort(arr) {
   return a;
 }
 
-// 快速排序：选基准分区，递归排序左右两侧
+// 快速排序：随机选取基准避免有序输入退化，分区后递归排序左右两侧
 function quickSort(arr) {
   if (arr.length <= 1) return [...arr];
-  const pivot = arr[arr.length - 1];
+  const pivot = arr[Math.floor(Math.random() * arr.length)];
   const left = [];
   const right = [];
   const equal = [];
@@ -69,5 +69,14 @@ if (require.main === module) {
       console.log(`${pass ? "PASS" : "FAIL"}  ${name.padEnd(11)} [${c}] -> [${result}]`);
     }
     console.log("---");
+  }
+
+  // 大规模有序输入：验证快排不会因基准退化而爆栈
+  const big = Array.from({ length: 50000 }, (_, i) => i);
+  const bigExpected = [...big].sort((x, y) => x - y);
+  const bigResults = { quickSort: quickSort(big), mergeSort: mergeSort(big) };
+  for (const [name, result] of Object.entries(bigResults)) {
+    const pass = JSON.stringify(result) === JSON.stringify(bigExpected);
+    console.log(`${pass ? "PASS" : "FAIL"}  ${name.padEnd(11)} 50000 个有序元素`);
   }
 }
